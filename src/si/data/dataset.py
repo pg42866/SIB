@@ -1,25 +1,24 @@
 import numpy as np
-from ..util.util import label_gen
+from src.si.util.util import label_gen
 
-__all__ = ['Dataset']
+__all__ = ['Dataset', "summary"]
 
 
 class Dataset:
-    def __init__(self, X=None, y=None,
-                 xnames: list = None,
-                 yname: str = None):
+    def __init__(self, X=None, Y=None, xnames: list = None, yname: str = None):
         """ Tabular Dataset"""
         if X is None:
             raise Exception("Trying to instanciate a DataSet without any data")
         self.X = X
-        self.y = y
+        self.Y = Y
         self._xnames = xnames if xnames else label_gen(X.shape[1])
-        self._yname = yname if yname else 'y'
+        self._yname = yname if yname else 'Y'
 
     @classmethod
     def from_data(cls, filename, sep=",", labeled=True):
         """Creates a DataSet from a data file.
-
+        :param labeled: if file contains row labels, defalts to True
+        :type labeled: bool
         :param filename: The filename
         :type filename: str
         :param sep: attributes separator, defaults to ","
@@ -27,39 +26,37 @@ class Dataset:
         :return: A DataSet object
         :rtype: DataSet
         """
-        data = np.genfromtxt(filename, delimiter=sep)
-        if labeled:
-            X = data[:, 0:-1]
-            y = data[:, -1]
-        else:
-            X = data
-            y = None
-        return cls(X, y)
+        data = np.genfromtxt(filename, delimiter=sep)  # retorna uma matriz numpy, onde se pode extrair
+        # print(data)
+        if labeled:  # se tiver labels
+            X = data[:, 0:-1]  # os dados serão todos os extraídos, exceto a ultima coluna
+            Y = data[:, -1]  # a ultima coluna são as labels dos dados
+        else:  # se não tiver labels
+            X = data  # então todos os dados extraídos são dados da tabela
+            Y = None  # e não temos labels
+        return cls(X, Y)
 
     @classmethod
     def from_dataframe(cls, df, ylabel=None):
-        """Creates a DataSet from a pandas dataframe.
-
-        :param df: [description]
-        :type df: [type]
+        """Creates a DataSet in array form from a pandas dataframe.
+        :param df: pandas dataframe
+        :type df: Dataframe
         :param ylabel: [description], defaults to None
         :type ylabel: [type], optional
-        :return: [description]
-        :rtype: [type]
+        :return: DataSet in array form
+        :rtype: array
         """
-
-        if ylabel and ylabel in df.columns:
-            X = df.loc[:, df.columns != ylabel].to_numpy()
-            y = df.loc[:, ylabel].to_numpy()
-            xnames = list(df.columns)
-            xnames.remove(ylabel)
-            yname = ylabel
+        if ylabel is not None and ylabel in df.columns:
+            X = df.loc[:, df.columns != ylabel].to_array()
+            Y = df.loc[:, ylabel].to_array()
+            xnames = df.columns.tolist().remove(ylabel)
+            ynames = ylabel
         else:
             X = df.to_numpy()
-            y = None
-            xnames = list(df.columns)
-            yname = None
-        return cls(X, y, xnames, yname)
+            Y = None
+            xnames = df.columns.tolist()
+            ynames = None
+        return cls(X, Y, xnames, ynames)
 
     def __len__(self):
         """Returns the number of data points."""
@@ -67,56 +64,50 @@ class Dataset:
 
     def hasLabel(self):
         """Returns True if the dataset constains labels (a dependent variable)"""
-        return self.y is not None
+        return self.Y is not None
 
     def getNumFeatures(self):
-        """Returns the number of features"""
+        """Returns the number of features (numero de colunas de X)"""
         return self.X.shape[1]
 
     def getNumClasses(self):
         """Returns the number of label classes or 0 if the dataset has no dependent variable."""
-        return len(np.unique(self.y)) if self.hasLabel() else 0
+        unique = np.unique(self.Y, return_counts=False)
+        return len(unique) if self.hasLabel() else 0
 
     def writeDataset(self, filename, sep=","):
         """Saves the dataset to a file
-
         :param filename: The output file path
         :type filename: str
         :param sep: The fields separator, defaults to ","
         :type sep: str, optional
         """
-        if self.y is not None:
-            fullds = np.hstack((self.X, self.y.reshape(len(self.y), 1)))
-        else:
-            fullds = self.X
+        fullds = np.hstack((self.X, self.Y.reshape(len(self.Y), 1)))
         np.savetxt(filename, fullds, delimiter=sep)
 
     def toDataframe(self):
         """ Converts the dataset into a pandas DataFrame"""
         import pandas as pd
-        if self.y is not None:
-            fullds = np.hstack((self.X, self.y.reshape(len(self.y), 1)))
-            columns = self._xnames[:]+[self._yname]
+        if self.Y is None:
+            dataset = pd.DataFrame(self.X.copy(), columns=self._xnames[:])
         else:
-            fullds = self.X.copy()
-            columns = self._xnames[:]
-        return pd.DataFrame(fullds, columns=columns)
+            dataset = pd.DataFrame(np.hstack((self.X, self.Y.reshape(len(self.Y), 1))), columns=np.hstack((self._xnames, self._yname)))
+        return dataset
 
     def getXy(self):
-        return self.X, self.y
+        return self.X, self.Y
 
 
 def summary(dataset, format='df'):
     """ Returns the statistics of a dataset(mean, std, max, min)
-
     :param dataset: A Dataset object
     :type dataset: si.data.Dataset
     :param format: Output format ('df':DataFrame, 'dict':dictionary ), defaults to 'df'
     :type format: str, optional
     """
     if dataset.hasLabel():
-        fullds = np.hstack((dataset.X, dataset.y.reshape(len(dataset.y), 1)))
-        columns = dataset._xnames[:]+[dataset._yname]
+        fullds = np.hstack((dataset.X, dataset.Y.reshape(len(dataset.Y), 1)))
+        columns = dataset._xnames[:] + [dataset._yname]
     else:
         fullds = dataset.X
         columns = dataset._xnames[:]

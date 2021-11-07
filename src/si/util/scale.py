@@ -3,6 +3,9 @@ from copy import copy
 
 
 class StandardScaler:
+    def __init__(self):
+        self.mean = None
+        self.var = None
     """
     Standardize features by centering the mean to 0 and unit variance.
     The standard score of an instance is calculated by:
@@ -25,11 +28,10 @@ class StandardScaler:
         training set.
         Parameters
         ----------
-        dataset : A Dataset object to be standardized
+        dataset : A Dataset OBJECT to be standardized
         """
-        X = dataset.X
-        self._mean = np.mean(X, axis=0)
-        self._var = np.var(X, axis=0)
+        self.mean = np.mean(dataset.X, axis=0)  # aplicar a média no eixo 1 (em cada linha)
+        self.var = np.var(dataset.X, axis=0)  # aplicar a média no eixo 1 (em cada linha)
 
     def transform(self, dataset, inline=False):
         """
@@ -37,23 +39,19 @@ class StandardScaler:
         standard deviation calculated during fitting.
         Parameters
         ----------
-        dataset : A Dataset object to be standardized
+        :param dataset: A Dataset object to be standardized
+        :param inline:
         Returns
         -------
         A Dataset object with standardized data.
         """
-        X = dataset.X
-        Z = (X - self._mean) / np.sqrt(self._var)
-
+        Z = (dataset.X - self.mean)/np.sqrt(self.var)
         if inline:
             dataset.X = Z
             return dataset
         else:
-            from . import Dataset
-            return Dataset(Z,
-                           copy(dataset.y),
-                           copy(dataset._xnames),
-                           copy(dataset._yname))
+            from src.si.data import Dataset
+            return Dataset(Z, copy(dataset.Y), copy(dataset._xnames), copy(dataset._yname))
 
     def fit_transform(self, dataset, inline=False):
         """
@@ -61,7 +59,8 @@ class StandardScaler:
         standardize the data.
         Parameters
         ----------
-        dataset : A Dataset object to be standardized
+        :param dataset : A Dataset object to be standardized
+        :param inline:
         Returns
         -------
         A Dataset object to with standardized data.
@@ -71,25 +70,23 @@ class StandardScaler:
 
     def inverse_transform(self, dataset, inline=False):
         """
-        Transform data back into orginal state by multiplying by standard
+        Transform data back into original state by multiplying by standard
         deviation and adding the mean back in.
         Inverse standard scaler:
             x = z * s + u
         where s is the standard deviation, and u is the mean.
         Parameters
         ----------
-        dataset : A standardized Dataset object
+        :param dataset : A standardized Dataset object
+        :param inline:
         Returns
         -------
         Dataset object
         """
-        X = dataset.X * np.sqrt(self._var) + self._mean
+        volta = (dataset.X * np.sqrt(self.var)) + self.mean
         if inline:
-            dataset.X = X
+            dataset.X = volta
             return dataset
         else:
-            from . import Dataset
-            return Dataset(X,
-                           copy(dataset.y),
-                           copy(dataset._xnames),
-                           copy(dataset._yname))
+            from src.si.data import Dataset
+            return Dataset(volta, copy(dataset.Y), copy(dataset._xnames), copy(dataset._yname))
