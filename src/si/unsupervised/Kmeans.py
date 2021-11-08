@@ -11,7 +11,6 @@ from src.si.util.util import euclidean, manhattan
 from src.si. data import Dataset
 import pandas as np
 
-
 class KMeans:
     def __init__(self, k: int, max_iterations=100, measure="euclidean"):
         self.k = k
@@ -20,16 +19,6 @@ class KMeans:
         self.measure = measure
         self._min = 0
         self._max = 0
-
-#   def distance_12(self, x, y):
-#       """
-#       Distancia euclidiana distance
-#       :param x:
-#       :param y:
-#       :return:
-#       """
-#       dist = np.absolute((x - y) ** 2).sum(axis=1)
-#       return dist
 
     def fit(self, dataset):
         self._min = np.min(dataset.X)
