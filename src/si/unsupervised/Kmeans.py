@@ -7,7 +7,7 @@ class KMeans:
         self.k = k
         self.n = max_iterations
         self.centroides = None
-        if measure is "euclidean":
+        if measure == "euclidean":
             self.measure = euclidean
 
     def fit(self, dataset):

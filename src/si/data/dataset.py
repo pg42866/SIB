@@ -96,6 +96,9 @@ class Dataset:
                                    columns=np.hstack((self._xnames, self._yname)))
         return dataset
 
+    def getXy(self):
+        return self.X, self.Y
+
 
 def summary(dataset, format='df'):
     """ Returns the statistics of a dataset(mean, std, max, min)
