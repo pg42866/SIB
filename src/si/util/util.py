@@ -89,3 +89,10 @@ def train_test_split(dataset, split=0.8):
     train = Dataset(dataset.X[arr[:m]], dataset.Y[arr[:m]], dataset._xnames, dataset._yname)
     test = Dataset(dataset.X[arr[m:]], dataset.Y[arr[m:]], dataset._xnames, dataset._yname)
     return train, test
+
+def sigmoide(z):
+    return 1/(1+np.exp(-z))
+
+
+def add_intersect(X):
+    return np.hstack((np.ones((X.shape[0], 1)), X))

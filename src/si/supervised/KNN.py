@@ -1,5 +1,5 @@
 from .Model import Model
-from si.util.util import euclidean, accuracy_score
+from src.si.util.util import euclidean, accuracy_score
 import numpy as np
 
 
@@ -13,8 +13,7 @@ class KNN(Model):
         self.dataset = dataset
         self.is_fited = True
 
-    def get_neighbors(self, x):  
-        # de treino
+    def get_neighbors(self, x):
         dist = euclidean(x, self.dataset.X)  
         indx_sort = np.argsort(dist)  
         return indx_sort[:self.k]  
