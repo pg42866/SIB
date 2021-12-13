@@ -22,7 +22,7 @@ class CrossValidationScore:
             ds.append((train,test))
             self.model.fit(train)
             train_scores.append(self.model.cost())
-            test_scores.append(self.model.cost(test.X,test.Y))
+            test_scores.append(self.model.cost())
         self.train_scores = train_scores
         self.test_scores = test_scores
         self.ds = ds

@@ -1,4 +1,4 @@
-from src.si.supervised.Modelo import Model
+from src.si.supervised.Model import Model
 from src.si.util.metrics import accuracy_score
 import numpy as np
 
@@ -175,10 +175,10 @@ class DecisionTree(Model):
         pred = np.argmax(self.predictSample(x, self.Tree))
         return pred
 
-    def cost(self, X=None, y=None):
+    def cost(self, X=None, Y=None):
         X = X if X is not None else self.dataset.X
-        y = y if y is not None else self.dataset.y
+        Y = Y if Y is not None else self.dataset.Y
 
-        y_pred = np.ma.apply_along_axis(self.predict,
+        Y_pred = np.ma.apply_along_axis(self.predict,
                                         axis=0, arr=X.T)
-        return accuracy_score(y, y_pred)
+        return accuracy_score(Y, Y_pred)
