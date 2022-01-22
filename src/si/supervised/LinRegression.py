@@ -50,11 +50,13 @@ class LinearRegressionReg(LinearRegression):
     def __init__(self, gd = False, epochs = 1000, lr=0.001,lbd = 1):
         super(LinearRegressionReg, self).__init__(gd=gd, epochs=epochs, lr=lr)
         self.lbd = lbd
+        self.gd = gd
+        self.num_iterations = epochs
 
     def train_closed(self, X, Y):
         n = X.shape[1]
         identity = np.eye(n)
-        identity[0, 0] = 0  # mudar o primeiro elemento para 0, para nao dar biased
+        identity[0, 0] = 0
         self.theta = np.linalg.inv(X.T.dot(X)+self.lbd*identity).dot(X.T).dot(Y)
         self.is_fited = True
 
