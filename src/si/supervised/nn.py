@@ -1,4 +1,3 @@
-import numpy as np
 from src.si.util.activation import *
 from src.si.util.metrics import mse, mse_prime
 from src.si.supervised.Model import Model
@@ -20,6 +19,7 @@ class Layer(ABC):
 
 class Dense(Layer):
     def __init__(self, inputsize, outputsize):
+        super().__init__()
         self.weights = np.random.rand(inputsize, outputsize) - 0.5
         self.bias = np.zeros((1, outputsize))
 
@@ -46,19 +46,21 @@ class Dense(Layer):
 
 class Activation(Layer):
     def __init__(self, activation):
+        super().__init__()
         self.function = activation
 
-    def forward(self,input):
+    def forward(self, input):
         self.input = input
         self.output = self.function(input)
         return self.output
 
-    def backward(self,output_error, lr):
-        return np.multiply(self.function.prime(self.input),output_error)
+    def backward(self, output_error, lr):
+        return np.multiply(self.function.prime(self.input), output_error)
 
 
 class NN(Model):
     def __init__(self, epochs=1000, lr=0.001, verbose=True):
+        super().__init__()
         self.epochs = epochs
         self.lr = lr
         self.verbose = verbose
@@ -75,7 +77,6 @@ class NN(Model):
         self.history = dict()
         for epoch in range(self.epochs):
             output = X
-            #forward propagation
             for layer in self.layers:
                 output = layer.forward(output)
 
@@ -88,15 +89,14 @@ class NN(Model):
             self.history[epoch] = err
             if self.verbose:
                 print(f"epoch {epoch+1}/{self.epochs} error={err}")
-            else:
-                print("\r", f"epoch {epoch + 1}/{self.epochs} error = {err}")
+        print("\r", f"epoch {epoch + 1}/{self.epochs} error = {err}")
         self.is_fited = True
 
-    def predict(self,input_data):
+    def predict(self, input_data):
         assert self.is_fited
         output = input_data
         for layer in self.layers:
-            output = layer.forward(output)
+            output= layer.forward(output)
         return output
 
     def cost(self, X=None, y=None):
@@ -118,19 +118,20 @@ class Flatten(Layer):
 
 
 class Conv2D(Layer):
-    def __init__(self, input_shape,kernel_shape, layer_depth, stride = 1, padding = 0):
+    def __init__(self, input_shape, kernel_shape, layer_depth, stride=1, padding=0):
+        super().__init__()
         self.input_shape = input_shape
         self.in_ch = input_shape[2]
         self.out_ch = layer_depth
         self.stride = stride
         self.padding = padding
 
-        self.weights = np.random.rand(kernel_shape[0],kernel_shape[1],
-                                      self.in_ch, self.out_ch) -0.5
+        self.weights = np.random.rand(kernel_shape[0], kernel_shape[1],
+                                      self.in_ch, self.out_ch) - 0.5
 
         self.bias = np.zeros((self.out_ch,1))
 
-    def forward(self,input_data):
+    def forward(self, input_data):
         s = self.stride
         self.X_shape = input_data.shape
         _, p = pad2D(input_data, self.padding, self.weights.shape[:2], s)
@@ -170,85 +171,115 @@ class Conv2D(Layer):
 
         return input_error
 
-# fazer pol
 
-
-class Poling2D(Model):
-    def __init__(self, size, stride):
-        self.size = size
+class MaxPooling(Layer):
+    def __init__(self, pool_size, stride=2):
+        super().__init__()
+        self.pool_size = pool_size
         self.stride = stride
+        self.cache = {}
+        self.X_copy = None
+        self.X_shape = None
 
-    def pool(self, X_col):
+    def pool(self, x_col):
         raise NotImplementedError
 
-    def dpool(self, dX_col, size, stride, padding, max_idx):
+    def dpool(self, dx_col, dout_col, cache):
         raise NotImplementedError
 
     def forward(self, input):
+        # n, h, w, d = input.shape  # comprimento, altura e numero das imagens
+        # h_out = (h - self.size) / self.stride + 1
+        # w_out = (w - self.size) / self.stride + 1
+        # if not w_out.is_intiger() or not h_out.is_intiger():
+        #     raise Exception("Invalid output dimension")
+        # h_out, w_out = int(h_out), int(w_out)
+        # X_reshaped = input.reshape()
+        # self.X_col = im2col(X_reshaped, self.size, pad=0, stride=self.stride)
+
+        # out, self.max_idx = self.pool(self.X_col)
+        # out = out.reshape(h_out, w_out, n, d)
+        # out = out.transpose(3, 2, 0, 1)
+        # return out
+        self.X_copy = np.array(input, copy=True)
         self.X_shape = input.shape
-        n, h, w, d = input.shape  # comprimento, altura e numero das imagens
-        h_out = (h - self.size) / self.stride + 1
-        w_out = (w - self.size) / self.stride + 1
-        if not w_out.is_intiger() or not h_out.is_intiger():
-            raise Exception("Invalid output dimension")
+        n, h, w, d = input.shape
+        height_pool, width_pool = self.pool_size
+        h_out = 1 + (h - height_pool) // self.stride
+        w_out = 1 + (w - width_pool) // self.stride
+        # if not w_out.is_intiger() or not h_out.is_intiger():
+        #    raise Exception("Invalid output dimension")
         h_out, w_out = int(h_out), int(w_out)
-        X_reshaped = input.reshape()
-        self.X_col = im2col(X_reshaped, self.size, pad=0, stride=self.stride)
-
-        out, self.max_idx = self.pool(self.X_col)
-        out = out.reshape(h_out, w_out, n, d)
-        out = out.transpose(3, 2, 0, 1)
-        return out
-
-    def backward(self, output_error, learning_rate):
-        n, w, h, d = self.X_shape
-        dX_col = np.zeros_like(self.X_col)
-        dout_col = output_error.transpose(2, 3, 0, 1).ravel()
-        dX = self.dpool(dX_col, dout_col, self.max_idx)
-        dX = col2im(dX_col, (n*d, h, w, 1), self.size, pad=0, stride=self.stride)
-        dX = dX.reshape(self.X_shape)
-        return dX
-
-
-class MaxPoling(Poling2D):
-
-    def __init__(self, region_shape):
-        self.region_h, self.region_w = region_shape
-
-    def pool(X_col):
-        max_idx = np.argmax(X_col, axis=0)
-        out = X_col[max_idx, range(max_idx.size)]
-        return out, max_idx
-
-    def dpool(dX_col, dout_col, pool_cache):
-        dX_col[pool_cache, range(dout_col.size)] = dout_col
-        return dX_col
-
-    def forward(self, input_data):
-        self.X_input = input_data
-        _, self.input_h, self.input_w, self.input_f = input_data.shape
-
-        self.out_h = self.input_h // self.region_h
-        self.out_w = self.input_w // self.region_w
-        output = np.zeros((self.out_h, self.out_w, self.input_f))
-
-        for image, i, j in self.iterate_regions():
-            output[i, j] = np.amax(image)
+        output = np.zeros((n, h_out, w_out, d))
+        for i in range(h_out):
+            for j in range(w_out):
+                h_start = i * self.stride
+                h_end = h_start + height_pool
+                w_start = j * self.stride
+                w_end = w_start + width_pool
+                a_prev_slice = input[:, h_start:h_end, w_start:w_end, :]
+                self.save_mask(x=a_prev_slice, cords=(i, j))
+                output[:, i, j, :] = np.max(a_prev_slice, axis=(1, 2))
         return output
 
     def backward(self, output_error, lr):
-        n, w, h, d = self.X_shape
+        # n, w, h, d = self.X_shape
+        # dX_col = np.zeros_like(self.X_col)
+        # dout_col = output_error.transpose(2, 3, 0, 1).ravel()
+        # dX = self.dpool(dX_col, dout_col, self.max_idx)
+        # dX = col2im(dX_col, (n*d, h, w, 1), self.pool_size, pad=0, stride=self.stride)
+        # dX = dX.reshape(self.X_shape)
+        # return dX
+        output = np.zeros_like(self.X_copy)
+        _, h_out, w_out, _ = output_error.shape
+        h_pool, w_pool = self.pool_size
 
-        dX_col = np.zeros_like(self.X_shape)
-        dout_col = output_error.transpose(2, 3, 0, 1).ravel()
+        for i in range(h_out):
+            for j in range(w_out):
+                h_start = i * self.stride
+                h_end = h_start + h_pool
+                w_start = j * self.stride
+                w_end = w_start + w_pool
+                output[:, h_start:h_end, w_start:w_end, :] += output_error[:, i:i + 1, j:j + 1, :] * self.cache[(i, j)]
+        return output
 
-        dX = self.dpool(dX_col, dout_col, self.max_idx)
+    def save_mask(self, x, cords):
+        mask = np.zeros_like(x)
+        n, h, w, c = x.shape
+        x = x.reshape(n, h * w, c)
+        idx = np.argmax(x, axis=1)
 
-        dX = col2im(dX_col, (n * d, 1, h, w), pad = 0, stride = self.stride)
-        dX = dX.reshape(self.X_shape)
+        n_idx, c_idx = np.indices((n, c))
+        mask.reshape(n, h * w, c)[n_idx, idx, c_idx] = 1
+        self.cache[cords] = mask
 
-    def iterate_regions(self):
-        for i in range(self.out_h):
-            for j in range(self.out_w):
-                image = self.X_input[(i * self.region_h) : (i * self.region_h + 2), (j * self.region_h) : (j * self.region_h + 2)]
-                yield image, i, j
+
+class AvgPooling(MaxPooling, ABC):
+    def __init__(self, pool_size, stride=2):
+        super().__init__()
+        self.pool_size = pool_size
+        self.stride = stride
+        self.cache = {}
+        self.X_copy = None
+        self.X_shape = None
+
+    def forward(self, input):
+        self.X_shape = input.shape
+        n, h, w, d = input.shape
+        height_pool, width_pool = self.pool_size
+        h_out = 1 + (h - height_pool) // self.stride
+        w_out = 1 + (w - width_pool) // self.stride
+        if not w_out.is_intiger() or not h_out.is_intiger():
+            raise Exception("Invalid output dimension")
+        h_out, w_out = int(h_out), int(w_out)
+        output = np.zeros((n, h_out, w_out, d))
+        for i in range(h_out):
+            for j in range(w_out):
+                h_start = i * self.stride
+                h_end = h_start + height_pool
+                w_start = j * self.stride
+                w_end = w_start + width_pool
+                a_prev_slice = input[:, h_start:h_end, w_start:w_end, :]
+                self.save_mask(x=a_prev_slice, cords=(i, j))
+                output[:, i, j, :] = np.mean(a_prev_slice, axis=(1, 2))
+        return output
