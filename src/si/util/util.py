@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import pandas as pd
 
 # Y is reserved to idenfify dependent variables
 ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXZ'
@@ -118,4 +119,8 @@ def minibatch(X, batchsize=256, shuffle=True):
         for i in range(n_batches):
             yield ix[i * batchsize: (i + 1) * batchsize]
 
-    return mb_generator(),
+    return mb_generator()
+
+def confusion_m(y_true, y_pred):
+    conf_matrix = pd.crosstab(y_true, y_pred, rownames=["True"], colnames=["Predicted"], margins=True)
+    return conf_matrix
