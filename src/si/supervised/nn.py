@@ -71,6 +71,10 @@ class NN(Model):
     def add(self, layer):
         self.layers.append(layer)
 
+    def useLoss(self, loss=None, loss_prime=None):
+        self.loss = loss
+        self.loss_prime = loss_prime
+
     def fit(self, dataset):
         X, Y = dataset.getXy()
         self.dataset = dataset
@@ -254,9 +258,8 @@ class MaxPooling(Layer):
         self.cache[cords] = mask
 
 
-class AvgPooling(MaxPooling, ABC):
+class AvgPooling(MaxPooling):
     def __init__(self, pool_size, stride=2):
-        super().__init__()
         self.pool_size = pool_size
         self.stride = stride
         self.cache = {}
@@ -269,8 +272,6 @@ class AvgPooling(MaxPooling, ABC):
         height_pool, width_pool = self.pool_size
         h_out = 1 + (h - height_pool) // self.stride
         w_out = 1 + (w - width_pool) // self.stride
-        if not w_out.is_intiger() or not h_out.is_intiger():
-            raise Exception("Invalid output dimension")
         h_out, w_out = int(h_out), int(w_out)
         output = np.zeros((n, h_out, w_out, d))
         for i in range(h_out):
